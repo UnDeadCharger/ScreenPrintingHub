@@ -19,6 +19,7 @@ export const api = {
   updateOrder: (id: string, input: UpdateOrderInput) =>
     request<Order>(`/orders/${id}`, 'PATCH', input),
   completeOrder: (id: string) => request<Order>(`/orders/${id}/complete`, 'PATCH'),
+  cancelOrder: (id: string) => request<Order>(`/orders/${id}/cancel`, 'PATCH'),
   uploadImage: (file: File) => {
     const form = new FormData();
     form.append('file', file);

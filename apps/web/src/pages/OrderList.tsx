@@ -9,7 +9,10 @@ const FILTERS: [OrderStatus | 'all', string][] = [
   ['all', 'All'],
   ['pending', 'Pending'],
   ['in_progress', 'In progress'],
+  ['printed', 'Printed'],
+  ['shipping', 'Shipping'],
   ['completed', 'Completed'],
+  ['cancelled', 'Cancelled'],
 ];
 
 // ponytail: loads every order and filters in the browser; filter and page in the API when the list gets long.

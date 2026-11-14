@@ -23,6 +23,14 @@ import type {
   UpdateOrderInput,
 } from '@sph/shared';
 
+// Reachable through a plain PATCH. completed/cancelled are final and go through their own endpoints.
+const EDITABLE_STATUSES = [
+  'pending',
+  'in_progress',
+  'printed',
+  'shipping',
+] as const satisfies readonly NonNullable<UpdateOrderInput['status']>[];
+
 // Each class `implements` its shared interface so the compiler catches drift from the web app.
 
 class RecipientDto implements Recipient {
@@ -75,6 +83,6 @@ export class UpdateOrderDto implements UpdateOrderInput {
   items?: OrderItemDto[];
 
   @IsOptional()
-  @IsIn(['pending', 'in_progress'] satisfies UpdateOrderInput['status'][])
+  @IsIn(EDITABLE_STATUSES)
   status?: UpdateOrderInput['status'];
 }

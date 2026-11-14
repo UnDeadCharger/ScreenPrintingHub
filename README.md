@@ -74,14 +74,15 @@ To run it, put the sheet PDFs at the repo root (they are git-ignored) and follow
 
 All routes are under `/api`. Images are served from `/uploads/<filename>`.
 
-| Method | Path                       | Purpose                                              |
-| ------ | -------------------------- | ---------------------------------------------------- |
-| POST   | `/api/orders`              | Create an order                                      |
-| GET    | `/api/orders`              | List orders, newest first                            |
-| GET    | `/api/orders/:id`          | Get one order                                        |
-| PATCH  | `/api/orders/:id`          | Update recipient, items or status                    |
-| PATCH  | `/api/orders/:id/complete` | Mark completed and set `completedAt`                 |
-| POST   | `/api/uploads`             | Upload one image (form field `file`), get `{ path }` |
+| Method | Path                       | Purpose                                                                           |
+| ------ | -------------------------- | --------------------------------------------------------------------------------- |
+| POST   | `/api/orders`              | Create an order                                                                   |
+| GET    | `/api/orders`              | List orders, newest first                                                         |
+| GET    | `/api/orders/:id`          | Get one order                                                                     |
+| PATCH  | `/api/orders/:id`          | Update recipient, items, or status (`pending`/`in_progress`/`printed`/`shipping`) |
+| PATCH  | `/api/orders/:id/complete` | Mark completed and set `completedAt`                                              |
+| PATCH  | `/api/orders/:id/cancel`   | Mark cancelled                                                                    |
+| POST   | `/api/uploads`             | Upload one image (form field `file`), get `{ path }`                              |
 
 ## Decisions worth knowing
 
@@ -110,8 +111,12 @@ All routes are under `/api`. Images are served from `/uploads/<filename>`.
 - **An in-progress order is kept in `sessionStorage`** so a reload or an evicted tab does not lose
   it. It is cleared after a successful create or with "Discard draft".
 - **Auth slot.** `apps/api/src/main.ts` has a comment marking where a global guard goes.
-- **`PATCH /api/orders/:id` cannot set `completed`.** Only `/complete` can. A completed order is
-  final: the API answers 409 to any further edit.
+- **Order status is `pending -> in_progress -> printed -> shipping -> completed`**, with
+  `cancelled` reachable from any step before `completed`. `PATCH /api/orders/:id` moves through the
+  first four; `completed` and `cancelled` each need their own endpoint, since reaching either one is
+  final. Completing or cancelling twice is harmless (the second call is a no-op); completing a
+  cancelled order, or cancelling a completed one, answers 409. So does any edit once an order is
+  completed or cancelled.
 - **MongoDB is pinned to 8.0.** In production it publishes no port. `docker-compose.dev.yml` sets
   `GLIBC_TUNABLES` because MongoDB 8 refuses to start on Linux kernels 6.19.0-7.0.13
   (SERVER-121912), which includes the OrbStack VM kernel. Debian 12 and 13 ship older kernels, so

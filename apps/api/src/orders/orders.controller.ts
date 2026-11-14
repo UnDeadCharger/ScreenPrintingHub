@@ -32,4 +32,9 @@ export class OrdersController {
   complete(@Param('id', ParseObjectIdPipe) id: Types.ObjectId) {
     return this.orders.complete(id);
   }
+
+  @Patch(':id/cancel')
+  cancel(@Param('id', ParseObjectIdPipe) id: Types.ObjectId) {
+    return this.orders.cancel(id);
+  }
 }

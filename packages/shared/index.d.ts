@@ -1,6 +1,7 @@
 // Types only: no runtime code, so no build step. Import with `import type`.
 
-export type OrderStatus = 'pending' | 'in_progress' | 'completed';
+export type OrderStatus =
+  'pending' | 'in_progress' | 'printed' | 'shipping' | 'completed' | 'cancelled';
 
 export interface Recipient {
   name: string;
@@ -47,7 +48,7 @@ export interface CreateOrderInput {
 
 export interface UpdateOrderInput extends Partial<CreateOrderInput> {
   /** `completed` is only reachable through PATCH /api/orders/:id/complete. */
-  status?: Exclude<OrderStatus, 'completed'>;
+  status?: Exclude<OrderStatus, 'completed' | 'cancelled'>;
 }
 
 export interface Order extends CreateOrderInput {

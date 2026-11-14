@@ -1,4 +1,4 @@
-import type { ItemSide, Order } from '@sph/shared';
+import type { ItemSide, Order, OrderStatus } from '@sph/shared';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { api } from '../api';
@@ -15,6 +15,23 @@ export function useOrder() {
   }, [id]);
   return { order, setOrder, error, setError };
 }
+
+// The normal forward path. completed is reached via api.completeOrder (sets completedAt);
+// cancelled is reached via api.cancelOrder from any step before completed, not shown here.
+const FLOW: Exclude<OrderStatus, 'cancelled'>[] = [
+  'pending',
+  'in_progress',
+  'printed',
+  'shipping',
+  'completed',
+];
+const NEXT_LABEL: Partial<Record<OrderStatus, string>> = {
+  in_progress: 'Start',
+  printed: 'Mark printed',
+  shipping: 'Mark shipped',
+  completed: 'Complete',
+};
+const FINAL: OrderStatus[] = ['completed', 'cancelled'];
 
 function Side({ title, side }: { title: string; side?: ItemSide }) {
   if (!side) return null;
@@ -65,6 +82,9 @@ export function OrderDetail() {
   }
 
   const { _id, recipient, status } = order;
+  // status may be 'cancelled', which is not in FLOW (indexOf -1 -> next = FLOW[0]); that value is
+  // never used, since the button bar below is hidden for every status in FINAL, cancelled included.
+  const next = FLOW[FLOW.indexOf(status as Exclude<OrderStatus, 'cancelled'>) + 1];
   return (
     <div className="grid max-w-3xl gap-3">
       <div>
@@ -75,17 +95,27 @@ export function OrderDetail() {
         </p>
       </div>
 
-      {/* A completed order is read-only here. */}
-      {status !== 'completed' && (
+      {/* A completed or cancelled order is read-only here. */}
+      {!FINAL.includes(status) && (
         <div className="flex flex-wrap gap-2">
-          {status === 'pending' && (
+          {next && (
             <button
               type="button"
               className={button}
               disabled={busy}
-              onClick={() => void run(() => api.updateOrder(_id, { status: 'in_progress' }))}
+              onClick={() => {
+                const advance =
+                  next === 'completed'
+                    ? () => api.completeOrder(_id)
+                    : () => api.updateOrder(_id, { status: next });
+                if (
+                  next !== 'completed' ||
+                  confirm('Mark this order as completed? It can no longer be edited.')
+                )
+                  void run(advance);
+              }}
             >
-              Start
+              {NEXT_LABEL[next]}
             </button>
           )}
           <button
@@ -93,11 +123,11 @@ export function OrderDetail() {
             className={button}
             disabled={busy}
             onClick={() => {
-              if (confirm('Mark this order as completed? It can no longer be edited.'))
-                void run(() => api.completeOrder(_id));
+              if (confirm('Cancel this order? It can no longer be edited.'))
+                void run(() => api.cancelOrder(_id));
             }}
           >
-            Complete
+            Cancel order
           </button>
           <Link to={`/orders/${_id}/edit`} className={`${button} flex items-center`}>
             Edit

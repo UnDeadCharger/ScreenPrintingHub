@@ -40,7 +40,11 @@ export const OrderSchema = new Schema(
   {
     recipient: { name: required, phone: String, address: String, notes: String },
     items: [OrderItemSchema],
-    status: { type: String, enum: ['pending', 'in_progress', 'completed'], default: 'pending' },
+    status: {
+      type: String,
+      enum: ['pending', 'in_progress', 'printed', 'shipping', 'completed', 'cancelled'],
+      default: 'pending',
+    },
     completedAt: Date,
   },
   { timestamps: true },

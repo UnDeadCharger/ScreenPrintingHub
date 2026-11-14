@@ -1,13 +1,12 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import type { OrderStatus } from '@sph/shared';
 import type { Model, Types } from 'mongoose';
 import type { CreateOrderDto, UpdateOrderDto } from './order.dto';
 import type { OrderDoc } from './order.schema';
 
-function found<T>(order: T | null): T {
-  if (!order) throw new NotFoundException('Order not found');
-  return order;
-}
+// completed and cancelled are final: no further edits or status changes once reached.
+const FINAL: OrderStatus[] = ['completed', 'cancelled'];
 
 @Injectable()
 export class OrdersService {
@@ -22,28 +21,50 @@ export class OrdersService {
   }
 
   async findOne(id: Types.ObjectId) {
-    return found(await this.orders.findById(id));
+    return this.require(id);
   }
 
-  /** A completed order is final: it cannot be edited or moved back to another status. */
+  /** A finalized order (completed or cancelled) is read-only. */
   async update(id: Types.ObjectId, dto: UpdateOrderDto) {
-    const updated = await this.orders.findOneAndUpdate(
-      { _id: id, status: { $ne: 'completed' } },
-      dto,
-      { returnDocument: 'after', runValidators: true },
-    );
+    const updated = await this.orders.findOneAndUpdate({ _id: id, status: { $nin: FINAL } }, dto, {
+      returnDocument: 'after',
+      runValidators: true,
+    });
     if (updated) return updated;
-    found(await this.orders.exists({ _id: id }));
-    throw new ConflictException('A completed order cannot be edited');
+    const existing = await this.require(id);
+    throw new ConflictException(`A ${existing.status} order cannot be edited`);
   }
 
-  /** Completing twice is harmless: the first completion time is kept. */
-  async complete(id: Types.ObjectId) {
-    const completed = await this.orders.findOneAndUpdate(
-      { _id: id, status: { $ne: 'completed' } },
-      { status: 'completed', completedAt: new Date() },
+  /** Moves to a final status. Repeating the same one is harmless; switching between the two
+   *  final statuses (e.g. completing a cancelled order) is rejected. */
+  private async finalize(id: Types.ObjectId, status: 'completed' | 'cancelled') {
+    const order = await this.require(id);
+    if (order.status === status) return order;
+    if (FINAL.includes(order.status as OrderStatus)) {
+      throw new ConflictException(`A ${order.status} order cannot be marked ${status}`);
+    }
+    const updated = await this.orders.findByIdAndUpdate(
+      id,
+      { status, ...(status === 'completed' ? { completedAt: new Date() } : {}) },
       { returnDocument: 'after' },
     );
-    return completed ?? this.findOne(id);
+    if (!updated) throw new NotFoundException('Order not found');
+    return updated;
+  }
+
+  async complete(id: Types.ObjectId) {
+    return this.finalize(id, 'completed');
+  }
+
+  async cancel(id: Types.ObjectId) {
+    return this.finalize(id, 'cancelled');
+  }
+
+  /** Looks up an order by id, or throws 404. A plain null check, not a generic helper: generic
+   *  inference does not reliably strip `null` from Mongoose's conditional query result types. */
+  private async require(id: Types.ObjectId) {
+    const order = await this.orders.findById(id);
+    if (!order) throw new NotFoundException('Order not found');
+    return order;
   }
 }
