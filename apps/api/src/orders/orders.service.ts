@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import type { Model, Types } from 'mongoose';
 import type { CreateOrderDto, UpdateOrderDto } from './order.dto';
@@ -9,7 +9,6 @@ function found<T>(order: T | null): T {
   return order;
 }
 
-// Placeholder logic: straight CRUD, no business rules yet.
 @Injectable()
 export class OrdersService {
   constructor(@InjectModel('Order') private readonly orders: Model<OrderDoc>) {}
@@ -26,22 +25,25 @@ export class OrdersService {
     return found(await this.orders.findById(id));
   }
 
+  /** A completed order is final: it cannot be edited or moved back to another status. */
   async update(id: Types.ObjectId, dto: UpdateOrderDto) {
-    return found(
-      await this.orders.findByIdAndUpdate(id, dto, {
-        returnDocument: 'after',
-        runValidators: true,
-      }),
+    const updated = await this.orders.findOneAndUpdate(
+      { _id: id, status: { $ne: 'completed' } },
+      dto,
+      { returnDocument: 'after', runValidators: true },
     );
+    if (updated) return updated;
+    found(await this.orders.exists({ _id: id }));
+    throw new ConflictException('A completed order cannot be edited');
   }
 
+  /** Completing twice is harmless: the first completion time is kept. */
   async complete(id: Types.ObjectId) {
-    return found(
-      await this.orders.findByIdAndUpdate(
-        id,
-        { status: 'completed', completedAt: new Date() },
-        { returnDocument: 'after' },
-      ),
+    const completed = await this.orders.findOneAndUpdate(
+      { _id: id, status: { $ne: 'completed' } },
+      { status: 'completed', completedAt: new Date() },
+      { returnDocument: 'after' },
     );
+    return completed ?? this.findOne(id);
   }
 }

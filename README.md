@@ -110,7 +110,8 @@ All routes are under `/api`. Images are served from `/uploads/<filename>`.
 - **An in-progress order is kept in `sessionStorage`** so a reload or an evicted tab does not lose
   it. It is cleared after a successful create or with "Discard draft".
 - **Auth slot.** `apps/api/src/main.ts` has a comment marking where a global guard goes.
-- **`PATCH /api/orders/:id` cannot set `completed`.** Only `/complete` can.
+- **`PATCH /api/orders/:id` cannot set `completed`.** Only `/complete` can. A completed order is
+  final: the API answers 409 to any further edit.
 - **MongoDB is pinned to 8.0.** In production it publishes no port. `docker-compose.dev.yml` sets
   `GLIBC_TUNABLES` because MongoDB 8 refuses to start on Linux kernels 6.19.0-7.0.13
   (SERVER-121912), which includes the OrbStack VM kernel. Debian 12 and 13 ship older kernels, so
@@ -121,17 +122,14 @@ All routes are under `/api`. Images are served from `/uploads/<filename>`.
 
 ## What is stubbed
 
-- **Order logic** is plain CRUD. `PATCH` replaces `recipient` or `items` wholesale. The web app
-  treats a completed order as read-only, but the API will still edit one (including moving it back
-  to `pending`).
+- **`PATCH` replaces `recipient` or `items` wholesale**; there are no partial item edits.
 - **Editing an order** keeps no saved draft; only a new order survives a reload.
-- **The order list** has no filtering or sorting.
+- **The order list** filters by status in the browser; there is no sorting, search or paging.
 - **Design ids are not checked against the library** by the API, only their shape.
 - **Uploads** are not linked to orders: nothing checks that a filename in an order exists, and
   files are never deleted.
 
 ## Next steps
 
-1. Order list: filter by status, and show enough per row to work from.
-2. Enforce the completed-order rule in the API, not only in the web app.
-3. Clean up orphaned upload files.
+1. Clean up orphaned upload files (abandoned drafts and replaced photos), if disk use ever matters.
+2. Search, sorting and paging for the order list, once there are enough orders to need them.
