@@ -1,0 +1,16 @@
+# Dev: MongoDB only. The API and web app run on the host via `pnpm dev`.
+name: sph-dev
+services:
+  mongo:
+    image: mongo:8.0
+    # Dev machine only: MongoDB 8 refuses to start on Linux kernels 6.19.0-7.0.13 (SERVER-121912),
+    # which includes the OrbStack/Docker Desktop VM kernel. This lets glibc own rseq so it starts.
+    # Not needed in production: Debian 12/13 ship older kernels. Remove once the VM kernel is >= 7.0.14.
+    environment:
+      GLIBC_TUNABLES: glibc.pthread.rseq=1
+    ports:
+      - '127.0.0.1:27017:27017'
+    volumes:
+      - mongo-data:/data/db
+volumes:
+  mongo-data:

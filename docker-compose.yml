@@ -1,0 +1,26 @@
+# Production: one app container (API + built web app + images) and MongoDB.
+name: sph
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - '${HOST:-0.0.0.0}:${API_PORT:-3000}:3000'
+    environment:
+      MONGO_URI: mongodb://${MONGO_ROOT_USER:?set in .env}:${MONGO_ROOT_PASSWORD:?set in .env}@mongo:27017/screenprinting?authSource=admin
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      - mongo
+  mongo:
+    image: mongo:8.0
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+    volumes:
+      - mongo-data:/data/db
+volumes:
+  uploads:
+  mongo-data:
