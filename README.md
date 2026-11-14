@@ -50,7 +50,9 @@ docker compose up -d --build
 
 Open `http://<tailscale-ip>:3000` (or the MagicDNS name) on the phone.
 
-- **Update:** `git pull && docker compose up -d --build`
+- **Update:** `scripts/deploy.sh` (or from another machine: `ssh <server> <repo-path>/scripts/deploy.sh`).
+  It refuses to run if the server copy has local changes, pulls `main` fast-forward only, rebuilds,
+  prunes old images and waits until the app answers.
 - **Logs:** `docker compose logs -f app`
 - **Back up the database:**
   `docker compose exec mongo sh -c 'mongodump --archive -u "$MONGO_INITDB_ROOT_USERNAME" -p "$MONGO_INITDB_ROOT_PASSWORD"' > backup.archive`
