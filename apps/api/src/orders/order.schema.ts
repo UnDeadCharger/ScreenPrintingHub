@@ -4,15 +4,23 @@ const required = { type: String, required: true } as const;
 
 const PrintSchema = new Schema(
   {
-    productImage: required,
-    designImage: required,
+    design: required,
+    color: { type: String, enum: ['white', 'red', 'blue', 'black'], required: true },
     position: {
       x: { type: Number, required: true, min: 0, max: 1 },
       y: { type: Number, required: true, min: 0, max: 1 },
-      scale: { type: Number, default: 1, min: 0 },
     },
-    label: String,
+    rotation: { type: Number, default: 0, min: -180, max: 180 },
     notes: String,
+  },
+  { _id: false },
+);
+
+const SideSchema = new Schema(
+  {
+    photo: required,
+    scale: { type: Number, default: 1, min: 0 },
+    prints: [PrintSchema],
   },
   { _id: false },
 );
@@ -22,7 +30,8 @@ const OrderItemSchema = new Schema(
     productName: required,
     productType: String,
     quantity: { type: Number, required: true, min: 1 },
-    prints: [PrintSchema],
+    front: SideSchema,
+    back: SideSchema,
   },
   { _id: false },
 );

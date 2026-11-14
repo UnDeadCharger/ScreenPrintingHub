@@ -3,3 +3,6 @@ dist
 .env
 uploads
 *.tsbuildinfo
+tools/debug
+.venv
+/*.pdf

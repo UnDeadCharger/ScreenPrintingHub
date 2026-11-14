@@ -9,28 +9,35 @@ export interface Recipient {
   notes?: string;
 }
 
-/** Where the design sits on the product photo. x/y are 0-1 fractions of the photo's width/height. */
-export interface PrintPosition {
-  x: number;
-  y: number;
-  /** Preview-only size multiplier (default 1). The physical print size is fixed and not stored. */
-  scale?: number;
-}
+export type PrintColor = 'white' | 'red' | 'blue' | 'black';
 
 export interface Print {
-  /** Filename returned by POST /api/uploads; served at /uploads/<filename>. */
-  productImage: string;
-  designImage: string;
-  position: PrintPosition;
-  label?: string;
+  /** Design id from the library (apps/web/src/designs.json), e.g. `v1-star`. */
+  design: string;
+  /** Ink colour the design is printed in. */
+  color: PrintColor;
+  /** Centre of the design on the photo. x/y are 0-1 fractions of the photo's width/height. */
+  position: { x: number; y: number };
+  /** Degrees clockwise, -180 to 180 (default 0). */
+  rotation?: number;
   notes?: string;
+}
+
+/** One side of a garment: a photo with any number of prints placed on it. */
+export interface ItemSide {
+  /** Filename returned by POST /api/uploads; served at /uploads/<filename>. */
+  photo: string;
+  /** Preview-only size multiplier (default 1): how large the design sheet looks on this photo. */
+  scale?: number;
+  prints: Print[];
 }
 
 export interface OrderItem {
   productName: string;
   productType?: string;
   quantity: number;
-  prints: Print[];
+  front?: ItemSide;
+  back?: ItemSide;
 }
 
 export interface CreateOrderInput {

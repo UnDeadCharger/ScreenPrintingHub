@@ -8,6 +8,7 @@ import {
   IsOptional,
   IsPositive,
   IsString,
+  Matches,
   Max,
   Min,
   ValidateNested,
@@ -15,8 +16,9 @@ import {
 import type {
   CreateOrderInput,
   OrderItem,
+  ItemSide,
   Print,
-  PrintPosition,
+  PrintColor,
   Recipient,
   UpdateOrderInput,
 } from '@sph/shared';
@@ -30,25 +32,32 @@ class RecipientDto implements Recipient {
   @IsOptional() @IsString() notes?: string;
 }
 
-class PrintPositionDto implements PrintPosition {
+class PositionDto {
   @IsNumber() @Min(0) @Max(1) x!: number;
   @IsNumber() @Min(0) @Max(1) y!: number;
-  @IsOptional() @IsNumber() @IsPositive() scale?: number;
 }
 
 class PrintDto implements Print {
-  @IsString() @IsNotEmpty() productImage!: string;
-  @IsString() @IsNotEmpty() designImage!: string;
-  @ValidateNested() @Type(() => PrintPositionDto) position!: PrintPositionDto;
-  @IsOptional() @IsString() label?: string;
+  // ponytail: only checks the id's shape; the design list lives in the web app.
+  @Matches(/^[a-z0-9-]+$/) design!: string;
+  @IsIn(['white', 'red', 'blue', 'black'] satisfies PrintColor[]) color!: PrintColor;
+  @ValidateNested() @Type(() => PositionDto) position!: PositionDto;
+  @IsOptional() @IsNumber() @Min(-180) @Max(180) rotation?: number;
   @IsOptional() @IsString() notes?: string;
+}
+
+class ItemSideDto implements ItemSide {
+  @IsString() @IsNotEmpty() photo!: string;
+  @IsOptional() @IsNumber() @IsPositive() scale?: number;
+  @IsArray() @ValidateNested({ each: true }) @Type(() => PrintDto) prints!: PrintDto[];
 }
 
 class OrderItemDto implements OrderItem {
   @IsString() @IsNotEmpty() productName!: string;
   @IsOptional() @IsString() productType?: string;
   @IsInt() @Min(1) quantity!: number;
-  @IsArray() @ValidateNested({ each: true }) @Type(() => PrintDto) prints!: PrintDto[];
+  @IsOptional() @ValidateNested() @Type(() => ItemSideDto) front?: ItemSideDto;
+  @IsOptional() @ValidateNested() @Type(() => ItemSideDto) back?: ItemSideDto;
 }
 
 export class CreateOrderDto implements CreateOrderInput {

@@ -2,3 +2,5 @@
 .agents
 skills-lock.json
 pnpm-lock.yaml
+tools/*.py
+apps/web/public/designs

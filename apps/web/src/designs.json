@@ -1,0 +1,176 @@
+[
+  {
+    "id": "v1-star",
+    "name": "star",
+    "width": 264,
+    "height": 252
+  },
+  {
+    "id": "v1-dog-wide",
+    "name": "dog wide",
+    "width": 1049,
+    "height": 759
+  },
+  {
+    "id": "v1-dog-ears",
+    "name": "dog ears",
+    "width": 728,
+    "height": 1026
+  },
+  {
+    "id": "v1-dot",
+    "name": "dot",
+    "width": 156,
+    "height": 155
+  },
+  {
+    "id": "v1-iu",
+    "name": "iu",
+    "width": 240,
+    "height": 209
+  },
+  {
+    "id": "v1-trom-viaaaaaa",
+    "name": "trom viaaaaaa",
+    "width": 997,
+    "height": 149
+  },
+  {
+    "id": "v1-people-unpleaser",
+    "name": "people unpleaser",
+    "width": 1210,
+    "height": 142
+  },
+  {
+    "id": "v1-aa-notbattery",
+    "name": "aa notbattery",
+    "width": 592,
+    "height": 91
+  },
+  {
+    "id": "v1-aa-notbattery-wavy",
+    "name": "aa notbattery wavy",
+    "width": 774,
+    "height": 200
+  },
+  {
+    "id": "v1-heart",
+    "name": "heart",
+    "width": 667,
+    "height": 589
+  },
+  {
+    "id": "v1-spiral",
+    "name": "spiral",
+    "width": 509,
+    "height": 531
+  },
+  {
+    "id": "v1-yeu",
+    "name": "yeu",
+    "width": 322,
+    "height": 190
+  },
+  {
+    "id": "v1-ai",
+    "name": "ai",
+    "width": 330,
+    "height": 348
+  },
+  {
+    "id": "v1-human-rejection",
+    "name": "human rejection",
+    "width": 975,
+    "height": 58
+  },
+  {
+    "id": "v1-may-you-find-liberation",
+    "name": "may you find liberation",
+    "width": 1307,
+    "height": 73
+  },
+  {
+    "id": "v1-from-the-river-to-the-sea",
+    "name": "from the river to the sea",
+    "width": 1624,
+    "height": 180
+  },
+  {
+    "id": "v2-dog-long",
+    "name": "dog long",
+    "width": 716,
+    "height": 1040
+  },
+  {
+    "id": "v2-dog-upside-down",
+    "name": "dog upside down",
+    "width": 713,
+    "height": 773
+  },
+  {
+    "id": "v2-love",
+    "name": "love",
+    "width": 620,
+    "height": 182
+  },
+  {
+    "id": "v2-not-tiny-compact",
+    "name": "not tiny compact",
+    "width": 917,
+    "height": 78
+  },
+  {
+    "id": "v2-statue",
+    "name": "statue",
+    "width": 639,
+    "height": 642
+  },
+  {
+    "id": "v2-running-out-of-time",
+    "name": "running out of time",
+    "width": 878,
+    "height": 359
+  },
+  {
+    "id": "v2-thuong",
+    "name": "thuong",
+    "width": 600,
+    "height": 176
+  },
+  {
+    "id": "v2-flower",
+    "name": "flower",
+    "width": 463,
+    "height": 530
+  },
+  {
+    "id": "v2-star",
+    "name": "star",
+    "width": 267,
+    "height": 254
+  },
+  {
+    "id": "v2-horse-on-star",
+    "name": "horse on star",
+    "width": 990,
+    "height": 824
+  },
+  {
+    "id": "v2-clover",
+    "name": "clover",
+    "width": 189,
+    "height": 231
+  },
+  {
+    "id": "v2-horse-skeleton",
+    "name": "horse skeleton",
+    "width": 661,
+    "height": 572
+  },
+  {
+    "id": "v2-three-stars",
+    "name": "three stars",
+    "width": 224,
+    "height": 659
+  }
+]

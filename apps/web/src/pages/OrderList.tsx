@@ -1,10 +1,11 @@
 import type { Order } from '@sph/shared';
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router';
 import { api } from '../api';
 
 const cell = 'border border-zinc-300 px-2 py-1 text-left whitespace-nowrap';
 
-// Placeholder page: read-only table, no filtering, sorting or row actions yet.
+// Read-only table; each row opens the order. No filtering or sorting yet.
 export function OrderList() {
   const [orders, setOrders] = useState<Order[]>();
   const [error, setError] = useState<string>();
@@ -32,7 +33,11 @@ export function OrderList() {
         <tbody>
           {orders.map((o) => (
             <tr key={o._id}>
-              <td className={cell}>{o.recipient.name}</td>
+              <td className={cell}>
+                <Link to={`/orders/${o._id}`} className="underline">
+                  {o.recipient.name}
+                </Link>
+              </td>
               <td className={cell}>{o.recipient.phone}</td>
               <td className={cell}>{o.items.length}</td>
               <td className={cell}>{o.status}</td>

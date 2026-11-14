@@ -6,6 +6,7 @@
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "types": ["vite/client", "node"],
     "jsx": "react-jsx",
+    "resolveJsonModule": true,
     "noEmit": true
   },
   "include": ["src", "vite.config.ts"]

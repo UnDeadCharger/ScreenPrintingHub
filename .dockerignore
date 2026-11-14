@@ -5,3 +5,5 @@
 **/uploads
 .claude
 .agents
+tools
+*.pdf

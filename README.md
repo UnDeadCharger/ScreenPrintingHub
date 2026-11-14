@@ -7,6 +7,7 @@ reached over Tailscale. There is no login: the tailnet is the access control.
 apps/api         NestJS + Mongoose API (also serves uploaded images, and the web app in production)
 apps/web         React + Vite + Tailwind web app
 packages/shared  TypeScript types shared by both apps
+tools            split_designs.py, which generates the design files
 ```
 
 ## Local setup
@@ -57,6 +58,18 @@ Open `http://<tailscale-ip>:3000` (or the MagicDNS name) on the phone.
 - **Restrict to the tailnet:** Docker publishes ports past `ufw`. To listen only on Tailscale, set
   `HOST=<tailscale-ip>` in the server's `.env`.
 
+## Design library
+
+The designs were cut from two sheet PDFs (`V1_final.pdf`, `V2_-_final.pdf`), which are not kept in
+the repo. Each sheet is one flattened scan, so `tools/split_designs.py` finds each design in the
+image and cuts it out with white turned transparent. It writes:
+
+- `apps/web/public/designs/<id>.png`: the cut-out as an alpha mask for the web app.
+- `apps/web/src/designs.json`: the list the order form shows.
+
+The generated files are committed, so the script is only needed to regenerate them or add a sheet.
+To run it, put the sheet PDFs at the repo root (they are git-ignored) and follow the script's header. Text that runs down the sheet is rotated upright.
+
 ## API
 
 All routes are under `/api`. Images are served from `/uploads/<filename>`.
@@ -78,15 +91,24 @@ All routes are under `/api`. Images are served from `/uploads/<filename>`.
 - **`packages/shared` is a single `index.d.ts`** with types only, so it has no build step. Values the
   API validates against (such as the allowed statuses) are written in the API's DTOs and checked
   against the shared types by the compiler.
-- **Print placement is a tap position, not a list of named spots.** Each item has `prints[]`. Each
-  print has its own product photo, design image and `position { x, y, scale }`, where `x`/`y` are
-  0-1 fractions of the photo. `scale` only sizes the preview; the physical print size is fixed.
-- **Images are uploaded separately** through `POST /api/uploads` (jpeg, png or webp, 15 MB max).
+- **An item has a front and a back, each optional.** Each side is one photo with any number of
+  prints on it. A print is a design from the library, an ink colour (black, white, red or blue) and
+  a tap position `{ x, y }`, stored as 0-1 fractions of the photo.
+- **One file per design, any colour.** The design PNGs are alpha masks that the browser tints with
+  CSS, so there are no per-colour copies.
+- **Designs keep their relative sizes in the preview.** Each is drawn at its share of the sheet
+  width. Each side's `scale` sets how large the whole sheet looks on that photo; it is a preview
+  aid only.
+- **Product photos are uploaded separately** through `POST /api/uploads` (jpeg, png or webp, 15 MB max).
   Orders store only the returned filename, never a full URL, so the host can change freely.
 - **Production is one app container plus MongoDB.** The API serves the built web app, so everything
   is on one port and same-origin. There is one `Dockerfile` and no nginx.
 - **Dev is same-origin too.** Vite proxies `/api` and `/uploads` to the API. `CORS_ORIGINS` is
   therefore empty by default and only needed if the web app is ever hosted separately.
+- **The new-order form is phone-first.** Inputs are 16px on phones (so iOS does not zoom on focus)
+  and controls are at least 44px tall. Placement is tap-only by design.
+- **An in-progress order is kept in `sessionStorage`** so a reload or an evicted tab does not lose
+  it. It is cleared after a successful create or with "Discard draft".
 - **Auth slot.** `apps/api/src/main.ts` has a comment marking where a global guard goes.
 - **`PATCH /api/orders/:id` cannot set `completed`.** Only `/complete` can.
 - **MongoDB is pinned to 8.0.** In production it publishes no port. `docker-compose.dev.yml` sets
@@ -99,17 +121,17 @@ All routes are under `/api`. Images are served from `/uploads/<filename>`.
 
 ## What is stubbed
 
-- **Order logic** is plain CRUD. `PATCH` replaces `recipient` or `items` wholesale, and it can still
-  edit an order that is already completed (including moving it back to `pending`).
-- **The order form** only captures the recipient and creates an order with no items.
-- **The order list** is a read-only table with no row actions, filtering or detail view.
+- **Order logic** is plain CRUD. `PATCH` replaces `recipient` or `items` wholesale. The web app
+  treats a completed order as read-only, but the API will still edit one (including moving it back
+  to `pending`).
+- **Editing an order** keeps no saved draft; only a new order survives a reload.
+- **The order list** has no filtering or sorting.
+- **Design ids are not checked against the library** by the API, only their shape.
 - **Uploads** are not linked to orders: nothing checks that a filename in an order exists, and
   files are never deleted.
 
 ## Next steps
 
-1. Order form: add items, image upload per print, and the tap-to-place picker.
-2. Order detail and edit page, with the design drawn over the product photo.
-3. List actions: change status, complete, filter by status.
-4. Decide the rules for editing or reopening completed orders and enforce them in the service.
-5. Clean up orphaned upload files.
+1. Order list: filter by status, and show enough per row to work from.
+2. Enforce the completed-order rule in the API, not only in the web app.
+3. Clean up orphaned upload files.
