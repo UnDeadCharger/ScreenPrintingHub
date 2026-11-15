@@ -83,3 +83,11 @@ export interface Order extends CreateOrderInput {
 export interface UploadResult {
   path: string;
 }
+
+/** Result of POST /api/backup/import: what was added, and what was already there. */
+export interface ImportResult {
+  ordersAdded: number;
+  ordersSkipped: number;
+  photosAdded: number;
+  photosSkipped: number;
+}

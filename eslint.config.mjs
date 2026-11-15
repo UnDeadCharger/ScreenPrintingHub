@@ -18,5 +18,7 @@ export default tseslint.config(
     plugins: { 'react-hooks': reactHooks },
     rules: { 'react-hooks/rules-of-hooks': 'error', 'react-hooks/exhaustive-deps': 'warn' },
   },
+  // Node scripts: Node's globals (Buffer, console) are not declared for ESLint.
+  { files: ['scripts/**/*.mjs'], rules: { 'no-undef': 'off' } },
   prettier,
 );

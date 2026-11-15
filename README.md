@@ -51,14 +51,45 @@ docker compose up -d --build
 Open `http://<tailscale-ip>:3000` (or the MagicDNS name) on the phone.
 
 - **Update:** `scripts/deploy.sh` (or from another machine: `ssh <server> <repo-path>/scripts/deploy.sh`).
-  It refuses to run if the server copy has local changes, pulls `main` fast-forward only, rebuilds,
-  prunes old images and waits until the app answers.
+  It refuses to run if the server copy has local changes, takes a backup, pulls `main` fast-forward
+  only, rebuilds, prunes old images and waits until the app answers.
 - **Logs:** `docker compose logs -f app`
-- **Back up the database:**
-  `docker compose exec mongo sh -c 'mongodump --archive -u "$MONGO_INITDB_ROOT_USERNAME" -p "$MONGO_INITDB_ROOT_PASSWORD"' > backup.archive`
-- **Back up images:** they live in the `sph_uploads` Docker volume.
+- **Backups:** see [Backups](#backups) below.
 - **Restrict to the tailnet:** Docker publishes ports past `ufw`. To listen only on Tailscale, set
   `HOST=<tailscale-ip>` in the server's `.env`.
+
+## Backups
+
+There are three layers. The first two are automatic once set up.
+
+1. **On the server: `scripts/backup.sh`.** Writes to `~/backups/screen-printing-hub/`, outside
+   Docker: one compressed database dump per run in `db/` (the newest 14 are kept) and a mirror of
+   every photo in `uploads/` (only new photos are copied each run). `scripts/deploy.sh` runs it
+   before every deploy and stops if it fails. Run it nightly too, by adding this line with
+   `crontab -e` on the server:
+
+   ```
+   0 3 * * * $HOME/repo/screen-printing-hub/scripts/backup.sh >> $HOME/backups/screen-printing-hub/backup.log 2>&1
+   ```
+
+2. **On the Mac: `scripts/pull-backup.sh`.** Copies the server's backup folder to
+   `~/Backups/screen-printing-hub/` over SSH, so a copy survives the server's disk. It fetches only
+   what the Mac lacks and needs just `ssh` and `tar`. The server is `argama` by default: an alias in
+   `~/.ssh/config`, or pass `user@host` as the first argument. To run it every
+   morning, add this with `crontab -e` on the Mac:
+
+   ```
+   30 9 * * * $HOME/Desktop/VisualCode/ScreenPrintingHub/scripts/pull-backup.sh >> $HOME/Backups/sph-pull.log 2>&1
+   ```
+
+3. **By hand: the Backup page in the app.** "Export everything" downloads one `.tar` file holding
+   `orders.json` and every photo. Importing that file adds the orders and photos that are missing
+   and never changes or removes anything that exists, so it is safe to repeat.
+
+**Restoring on the server:** `scripts/restore.sh` loads the newest dump (or one you name) and copies
+the photo mirror back. It replaces the whole database, so orders created after that dump are lost;
+it asks you to type `restore` first. To get back only what is missing, without replacing anything,
+import an export file on the Backup page instead.
 
 ## Design library
 
@@ -85,6 +116,8 @@ All routes are under `/api`. Images are served from `/uploads/<filename>`.
 | PATCH  | `/api/orders/:id/payment`  | Set `paymentStatus` to `unpaid`, `deposit` or `paid`                              |
 | PATCH  | `/api/orders/:id/complete` | Mark completed and set `completedAt`                                              |
 | PATCH  | `/api/orders/:id/cancel`   | Mark cancelled                                                                    |
+| GET    | `/api/backup`              | Download every order and photo as one `.tar`                                      |
+| POST   | `/api/backup/import`       | Add what is missing from such a `.tar` (the body)                                 |
 | POST   | `/api/uploads`             | Upload one image (form field `file`), get `{ path }`                              |
 
 ## Decisions worth knowing
@@ -138,7 +171,10 @@ All routes are under `/api`. Images are served from `/uploads/<filename>`.
   the production file does not set it. If the server ever runs an affected kernel, copy that
   setting across.
 - **TypeScript is pinned to 6.x** because typescript-eslint does not support 7 yet.
-- **No test framework yet.** Add one when there is logic worth testing.
+- **The backup file is a plain tar**, written and read by a small hand-rolled module
+  (`apps/api/src/orders/tar.ts`) because Node has no built-in archive format. Any tar tool can open it.
+- **No test framework yet.** The one piece of tricky logic, the tar module, has a self-check:
+  `pnpm build && node scripts/check-tar.mjs`.
 
 ## What is stubbed
 

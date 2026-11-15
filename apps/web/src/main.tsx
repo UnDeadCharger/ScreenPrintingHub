@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, NavLink, Outlet, Route, Routes } from 'react-router';
 import './index.css';
+import { Backup } from './pages/Backup';
 import { OrderDetail } from './pages/OrderDetail';
 import { EditOrder, OrderForm } from './pages/OrderForm';
 import { OrderList } from './pages/OrderList';
@@ -12,7 +13,7 @@ const navClass = ({ isActive }: { isActive: boolean }) =>
 function Layout() {
   return (
     <div className="min-h-dvh bg-white text-sm text-zinc-900">
-      <header className="flex items-center gap-3 border-b border-zinc-300 bg-zinc-100 px-3">
+      <header className="flex flex-wrap items-center gap-x-3 border-b border-zinc-300 bg-zinc-100 px-3">
         <span className="font-semibold">Screen Printing Hub</span>
         <nav className="flex gap-1">
           <NavLink to="/" end className={navClass}>
@@ -20,6 +21,9 @@ function Layout() {
           </NavLink>
           <NavLink to="/orders/new" className={navClass}>
             New order
+          </NavLink>
+          <NavLink to="/backup" className={navClass}>
+            Backup
           </NavLink>
         </nav>
       </header>
@@ -42,6 +46,7 @@ createRoot(root).render(
           <Route path="orders/new" element={<OrderForm />} />
           <Route path="orders/:id" element={<OrderDetail />} />
           <Route path="orders/:id/edit" element={<EditOrder />} />
+          <Route path="backup" element={<Backup />} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -1,5 +1,6 @@
 import type {
   CreateOrderInput,
+  ImportResult,
   Order,
   PaymentStatus,
   UpdateOrderInput,
@@ -8,11 +9,12 @@ import type {
 
 // Relative URLs: the Vite proxy handles them in dev, the API serves the app in production.
 async function request<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
-  const isForm = body instanceof FormData;
+  // FormData and Blob bodies go out as they are; everything else is JSON.
+  const isRaw = body instanceof FormData || body instanceof Blob;
   const res = await fetch(`/api${path}`, {
     method,
-    headers: body && !isForm ? { 'Content-Type': 'application/json' } : undefined,
-    body: isForm ? body : body === undefined ? undefined : JSON.stringify(body),
+    headers: body && !isRaw ? { 'Content-Type': 'application/json' } : undefined,
+    body: isRaw ? body : body === undefined ? undefined : JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`${method} ${path} failed: ${res.status} ${await res.text()}`);
   return (await res.json()) as T;
@@ -33,5 +35,12 @@ export const api = {
     form.append('file', file);
     return request<UploadResult>('/uploads', 'POST', form);
   },
+  // Re-wrapped so the content type is always tar, whatever the browser guessed for the file.
+  importBackup: (file: File) =>
+    request<ImportResult>(
+      '/backup/import',
+      'POST',
+      new Blob([file], { type: 'application/x-tar' }),
+    ),
   imageUrl: (path: string) => `/uploads/${path}`,
 };
