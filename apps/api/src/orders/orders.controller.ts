@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { ParseObjectIdPipe } from '@nestjs/mongoose';
 import type { Types } from 'mongoose';
-import { CreateOrderDto, UpdateOrderDto } from './order.dto';
+import { CreateOrderDto, PaymentDto, UpdateOrderDto } from './order.dto';
 import { OrdersService } from './orders.service';
 
 @Controller('orders')
@@ -26,6 +26,11 @@ export class OrdersController {
   @Patch(':id')
   update(@Param('id', ParseObjectIdPipe) id: Types.ObjectId, @Body() dto: UpdateOrderDto) {
     return this.orders.update(id, dto);
+  }
+
+  @Patch(':id/payment')
+  setPayment(@Param('id', ParseObjectIdPipe) id: Types.ObjectId, @Body() dto: PaymentDto) {
+    return this.orders.setPayment(id, dto.paymentStatus);
   }
 
   @Patch(':id/complete')

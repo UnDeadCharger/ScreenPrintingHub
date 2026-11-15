@@ -1,7 +1,8 @@
 import type { PrintColor } from '@sph/shared';
 import { useState, type ChangeEvent, type MouseEvent } from 'react';
 import { api } from '../api';
-import designs from '../designs.json';
+import designs from '@sph/shared/designs.json';
+import { printPrice, vnd } from '../pricing';
 import { button, input } from '../ui';
 import { COLORS, designById, mask, SidePreview } from './SidePreview';
 
@@ -122,7 +123,7 @@ export function SideEditor({ title, value, onChange }: Props) {
               <button
                 key={d.id}
                 type="button"
-                title={d.name}
+                title={`${d.name}, ${vnd(d.price)}`}
                 aria-label={d.name}
                 aria-pressed={d.id === active?.design}
                 className={`aspect-square bg-zinc-200 p-1 ${
@@ -167,6 +168,7 @@ export function SideEditor({ title, value, onChange }: Props) {
             >
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-semibold">{designById(p.design)?.name ?? p.design}</span>
+                <span className="tabular-nums">{vnd(printPrice(p))}</span>
                 <span className={p === active ? 'text-amber-700' : 'text-zinc-500'}>
                   {p === active ? 'Placing' : 'Locked'}
                 </span>

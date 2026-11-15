@@ -1,4 +1,16 @@
 // Types only: no runtime code, so no build step. Import with `import type`.
+// The design library is data, in designs.json next to this file.
+
+/** One entry of designs.json. */
+export interface Design {
+  id: string;
+  name: string;
+  /** Pixel size of the cut-out; widths are relative to a 2079px-wide sheet. */
+  width: number;
+  height: number;
+  /** What one print of this design costs, in VND. */
+  price: number;
+}
 
 export type OrderStatus =
   'pending' | 'in_progress' | 'printed' | 'shipping' | 'completed' | 'cancelled';
@@ -10,10 +22,12 @@ export interface Recipient {
   notes?: string;
 }
 
+export type PaymentStatus = 'unpaid' | 'deposit' | 'paid';
+
 export type PrintColor = 'white' | 'red' | 'blue' | 'black';
 
 export interface Print {
-  /** Design id from the library (apps/web/src/designs.json), e.g. `v1-star`. */
+  /** Design id from the library (designs.json), e.g. `v1-star`. */
   design: string;
   /** Ink colour the design is printed in. */
   color: PrintColor;
@@ -22,6 +36,11 @@ export interface Print {
   /** Degrees clockwise, -180 to 180 (default 0). */
   rotation?: number;
   notes?: string;
+  /**
+   * What this print costs, in VND. Set by the API from the design's price each time the order's
+   * items are saved, so later price changes do not alter existing orders. Never sent by the client.
+   */
+  price?: number;
 }
 
 /** One side of a garment: a photo with any number of prints placed on it. */
@@ -54,6 +73,8 @@ export interface UpdateOrderInput extends Partial<CreateOrderInput> {
 export interface Order extends CreateOrderInput {
   _id: string;
   status: OrderStatus;
+  /** Tracked separately from `status`, and changeable at any time. */
+  paymentStatus: PaymentStatus;
   createdAt: string;
   updatedAt: string;
   completedAt?: string;

@@ -16,6 +16,7 @@
     "@nestjs/core": "^12.5.0",
     "@nestjs/mongoose": "^12.0.1",
     "@nestjs/platform-express": "^12.5.0",
+    "@sph/shared": "workspace:*",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "mongoose": "^9.12.1",
@@ -24,7 +25,6 @@
   },
   "devDependencies": {
     "@nestjs/cli": "^12.0.13",
-    "@sph/shared": "workspace:*",
     "@types/express": "^5.0.6",
     "@types/multer": "^2.3.0",
     "@types/node": "^24.19.2",

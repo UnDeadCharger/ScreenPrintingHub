@@ -1,7 +1,7 @@
 import type { PrintColor } from '@sph/shared';
 import type { CSSProperties, MouseEvent } from 'react';
 import { api } from '../api';
-import designs from '../designs.json';
+import designs from '@sph/shared/designs.json';
 
 export const COLORS: Record<PrintColor, string> = {
   black: '#000000',

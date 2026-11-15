@@ -1,4 +1,10 @@
-import type { CreateOrderInput, Order, UpdateOrderInput, UploadResult } from '@sph/shared';
+import type {
+  CreateOrderInput,
+  Order,
+  PaymentStatus,
+  UpdateOrderInput,
+  UploadResult,
+} from '@sph/shared';
 
 // Relative URLs: the Vite proxy handles them in dev, the API serves the app in production.
 async function request<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
@@ -18,6 +24,8 @@ export const api = {
   createOrder: (input: CreateOrderInput) => request<Order>('/orders', 'POST', input),
   updateOrder: (id: string, input: UpdateOrderInput) =>
     request<Order>(`/orders/${id}`, 'PATCH', input),
+  setPayment: (id: string, paymentStatus: PaymentStatus) =>
+    request<Order>(`/orders/${id}/payment`, 'PATCH', { paymentStatus }),
   completeOrder: (id: string) => request<Order>(`/orders/${id}/complete`, 'PATCH'),
   cancelOrder: (id: string) => request<Order>(`/orders/${id}/cancel`, 'PATCH'),
   uploadImage: (file: File) => {

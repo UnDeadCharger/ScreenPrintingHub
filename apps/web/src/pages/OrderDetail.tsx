@@ -1,8 +1,9 @@
-import type { ItemSide, Order, OrderStatus } from '@sph/shared';
+import type { ItemSide, Order, OrderStatus, PaymentStatus } from '@sph/shared';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { api } from '../api';
 import { designById, SidePreview } from '../components/SidePreview';
+import { orderTotal, PAYMENT_LABEL, printPrice, unitPrice, vnd } from '../pricing';
 import { button } from '../ui';
 
 /** Loads one order by the `:id` route param. */
@@ -53,6 +54,7 @@ function Side({ title, side }: { title: string; side?: ItemSide }) {
               p.color,
               p.rotation ? `rotated ${p.rotation}°` : '',
               p.notes,
+              vnd(printPrice(p)),
             ]
               .filter(Boolean)
               .join(' · ')}
@@ -82,6 +84,7 @@ export function OrderDetail() {
   }
 
   const { _id, recipient, status } = order;
+  const payment = order.paymentStatus ?? 'unpaid';
   // status may be 'cancelled', which is not in FLOW (indexOf -1 -> next = FLOW[0]); that value is
   // never used, since the button bar below is hidden for every status in FINAL, cancelled included.
   const next = FLOW[FLOW.indexOf(status as Exclude<OrderStatus, 'cancelled'>) + 1];
@@ -93,6 +96,26 @@ export function OrderDetail() {
           {status.replace('_', ' ')} · created {new Date(order.createdAt).toLocaleString()}
           {order.completedAt && ` · completed ${new Date(order.completedAt).toLocaleString()}`}
         </p>
+        <p className="text-base font-semibold tabular-nums">
+          Total: {vnd(orderTotal(order.items))}
+        </p>
+      </div>
+
+      {/* Payment is separate from the order status and stays changeable on a final order. */}
+      <div className="flex flex-wrap items-center gap-2">
+        Payment
+        {(Object.keys(PAYMENT_LABEL) as PaymentStatus[]).map((p) => (
+          <button
+            key={p}
+            type="button"
+            aria-pressed={p === payment}
+            disabled={busy}
+            className={`${button} ${p === payment ? 'bg-zinc-800 text-white' : ''}`}
+            onClick={() => void run(() => api.setPayment(_id, p))}
+          >
+            {PAYMENT_LABEL[p]}
+          </button>
+        ))}
       </div>
 
       {/* A completed or cancelled order is read-only here. */}
@@ -152,6 +175,10 @@ export function OrderDetail() {
             {item.quantity} x {item.productName}
             {item.productType && ` (${item.productType})`}
           </h2>
+          <p className="tabular-nums">
+            Prints: {vnd(unitPrice(item))} x {item.quantity} ={' '}
+            <strong>{vnd(unitPrice(item) * item.quantity)}</strong>
+          </p>
           {!item.front && !item.back && <p className="text-zinc-600">No photos.</p>}
           <div className="grid gap-3 sm:grid-cols-2">
             <Side title="Front" side={item.front} />

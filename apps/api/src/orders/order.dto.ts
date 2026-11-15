@@ -17,6 +17,7 @@ import type {
   CreateOrderInput,
   OrderItem,
   ItemSide,
+  PaymentStatus,
   Print,
   PrintColor,
   Recipient,
@@ -46,7 +47,7 @@ class PositionDto {
 }
 
 class PrintDto implements Print {
-  // ponytail: only checks the id's shape; the design list lives in the web app.
+  // Shape only here; the service rejects ids that are not in the design library.
   @Matches(/^[a-z0-9-]+$/) design!: string;
   @IsIn(['white', 'red', 'blue', 'black'] satisfies PrintColor[]) color!: PrintColor;
   @ValidateNested() @Type(() => PositionDto) position!: PositionDto;
@@ -85,4 +86,8 @@ export class UpdateOrderDto implements UpdateOrderInput {
   @IsOptional()
   @IsIn(EDITABLE_STATUSES)
   status?: UpdateOrderInput['status'];
+}
+
+export class PaymentDto {
+  @IsIn(['unpaid', 'deposit', 'paid'] satisfies PaymentStatus[]) paymentStatus!: PaymentStatus;
 }

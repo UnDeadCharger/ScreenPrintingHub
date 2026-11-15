@@ -4,7 +4,8 @@ Each sheet is a single black-on-white image. Ink is found by thresholding, nearb
 into components, and the components listed in SHEETS are cut out with white turned transparent.
 
 Writes apps/web/public/designs/<id>.png per design (black + alpha mask; the web app tints it with
-CSS) and apps/web/src/designs.json (id, name, width, height).
+CSS) and packages/shared/designs.json (id, name, width, height, price), which the web app and the
+API both read.
 
 The sheet PDFs are not in the repo: put them at the repo root first (they are git-ignored).
 Run from the repo root:
@@ -13,7 +14,7 @@ Run from the repo root:
   .venv/bin/python tools/split_designs.py --debug    # write numbered overlays to tools/debug/
 
 To add a sheet: add it to SHEETS with an empty list, run --debug, read the component numbers off
-the overlay, then list each design as (id, [component numbers], rotate_upright).
+the overlay, then list each design as (id, [component numbers], rotate_upright, price).
 """
 
 import io
@@ -31,40 +32,41 @@ INK = 200  # pixels darker than this count as ink when grouping
 MIN_INK = 400  # components with fewer ink pixels are scan specks
 NOISE = 12  # alpha below this (near-white JPEG noise) becomes fully transparent
 
-# (id, component numbers at RADIUS, rotate): rotate=True turns text that runs down the sheet upright.
+# (id, component numbers at RADIUS, rotate, price): rotate=True turns text that runs down the sheet
+# upright; price is what one print of the design costs, in VND.
 SHEETS = {
     'V1_final.pdf': [
-        ('v1-star', [0], False),
-        ('v1-dog-wide', [1], False),
-        ('v1-dog-ears', [6], False),
-        ('v1-dot', [9], False),
-        ('v1-iu', [3, 5], False),
-        ('v1-trom-viaaaaaa', [4, 7], True),
-        ('v1-people-unpleaser', [2, 8], True),
-        ('v1-aa-notbattery', [10], False),
-        ('v1-aa-notbattery-wavy', [11], False),
-        ('v1-heart', [14], False),
-        ('v1-spiral', [15], False),
-        ('v1-yeu', [13], False),
-        ('v1-ai', [16], False),
-        ('v1-human-rejection', [12], True),
-        ('v1-may-you-find-liberation', [17, 18], False),
-        ('v1-from-the-river-to-the-sea', [19, 22, 23, 24, 20, 21], False),
+        ('v1-star', [0], False, 10000),
+        ('v1-dog-wide', [1], False, 40000),
+        ('v1-dog-ears', [6], False, 40000),
+        ('v1-dot', [9], False, 10000),
+        ('v1-iu', [3, 5], False, 10000),
+        ('v1-trom-viaaaaaa', [4, 7], True, 20000),
+        ('v1-people-unpleaser', [2, 8], True, 20000),
+        ('v1-aa-notbattery', [10], False, 10000),
+        ('v1-aa-notbattery-wavy', [11], False, 20000),
+        ('v1-heart', [14], False, 40000),
+        ('v1-spiral', [15], False, 40000),
+        ('v1-yeu', [13], False, 10000),
+        ('v1-ai', [16], False, 20000),
+        ('v1-human-rejection', [12], True, 10000),
+        ('v1-may-you-find-liberation', [17, 18], False, 10000),
+        ('v1-from-the-river-to-the-sea', [19, 22, 23, 24, 20, 21], False, 20000),
     ],
     'V2_-_final.pdf': [
-        ('v2-dog-long', [0], False),
-        ('v2-dog-upside-down', [1], False),
-        ('v2-love', [3, 5], True),
-        ('v2-not-tiny-compact', [2, 4, 6], True),
-        ('v2-statue', [9], False),
-        ('v2-running-out-of-time', [7, 14, 18, 10, 15, 17, 8, 11, 16], True),
-        ('v2-thuong', [13], True),
-        ('v2-flower', [12], False),
-        ('v2-star', [19], False),
-        ('v2-horse-on-star', [20], False),
-        ('v2-clover', [21], False),
-        ('v2-horse-skeleton', [23], False),
-        ('v2-three-stars', [22], False),
+        ('v2-dog-long', [0], False, 40000),
+        ('v2-dog-upside-down', [1], False, 40000),
+        ('v2-love', [3, 5], True, 20000),
+        ('v2-not-tiny-compact', [2, 4, 6], True, 10000),
+        ('v2-statue', [9], False, 40000),
+        ('v2-running-out-of-time', [7, 14, 18, 10, 15, 17, 8, 11, 16], True, 20000),
+        ('v2-thuong', [13], True, 20000),
+        ('v2-flower', [12], False, 20000),
+        ('v2-star', [19], False, 10000),
+        ('v2-horse-on-star', [20], False, 40000),
+        ('v2-clover', [21], False, 10000),
+        ('v2-horse-skeleton', [23], False, 20000),
+        ('v2-three-stars', [22], False, 10000),
     ],
 }
 
@@ -119,9 +121,9 @@ def main():
     manifest = []
     for name, designs in SHEETS.items():
         gray, labels, kept = components(root / name)
-        used = [n for _, numbers, _ in designs for n in numbers]
+        used = [n for _, numbers, _, _ in designs for n in numbers]
         assert sorted(used) == list(range(len(kept))), f'{name}: components unused or repeated'
-        for design_id, numbers, rotate in designs:
+        for design_id, numbers, rotate, price in designs:
             img = cut(gray, labels, kept, numbers, rotate)
             img.save(png_dir / f'{design_id}.png', optimize=True)
             manifest.append(
@@ -130,9 +132,10 @@ def main():
                     'name': design_id.split('-', 1)[1].replace('-', ' '),
                     'width': img.width,
                     'height': img.height,
+                    'price': price,
                 }
             )
-    (root / 'apps/web/src/designs.json').write_text(json.dumps(manifest, indent=2) + '\n')
+    (root / 'packages/shared/designs.json').write_text(json.dumps(manifest, indent=2) + '\n')
     print(f'wrote {len(manifest)} designs')
 
 

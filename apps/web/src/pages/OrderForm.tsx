@@ -3,6 +3,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router';
 import { api } from '../api';
 import { newKey, newSide, reserveKeys, SideEditor, type SideDraft } from '../components/SideEditor';
+import { orderTotal, unitPrice, vnd } from '../pricing';
 import { button, input } from '../ui';
 import { useOrder } from './OrderDetail';
 
@@ -39,13 +40,16 @@ const newDraft = (): Draft => ({ recipient: emptyRecipient, items: [newItem()] }
 
 // ponytail: the draft is trusted as-is. Bump the version whenever the Draft shape changes,
 // so a draft saved by an older build is ignored instead of crashing the form.
-const DRAFT_KEY = 'sph.order-draft.v1';
+// ponytail: an edit draft is not checked against the order changing elsewhere meanwhile; it only
+// lives in this tab's session, and "Discard changes" reloads the saved order.
+const draftKey = (order?: Order) =>
+  order ? `sph.order-draft.v1.edit.${order._id}` : 'sph.order-draft.v1';
 
 /** The in-progress order survives a reload or an evicted tab. Photos are already on the server. */
-function loadDraft(): Draft {
+function loadDraft(key: string, fallback: () => Draft): Draft {
   try {
-    const saved = JSON.parse(sessionStorage.getItem(DRAFT_KEY) ?? 'null') as Draft | null;
-    if (!saved) return newDraft();
+    const saved = JSON.parse(sessionStorage.getItem(key) ?? 'null') as Draft | null;
+    if (!saved) return fallback();
     const keys = saved.items.flatMap((it) => [
       it.key,
       ...SIDES.flatMap((side) => it[side].prints.map((p) => p.key)),
@@ -53,7 +57,7 @@ function loadDraft(): Draft {
     reserveKeys(Math.max(-1, ...keys));
     return saved;
   } catch {
-    return newDraft(); // storage blocked, or the saved draft is unreadable
+    return fallback(); // storage blocked, or the saved draft is unreadable
   }
 }
 
@@ -95,10 +99,11 @@ export function EditOrder() {
   return <OrderForm key={order._id} order={order} />;
 }
 
-/** Creates an order, or edits `order` when one is given. Only new orders keep a saved draft. */
+/** Creates an order, or edits `order` when one is given. */
 export function OrderForm({ order }: { order?: Order }) {
   const navigate = useNavigate();
-  const [initial] = useState(() => (order ? fromOrder(order) : loadDraft()));
+  const key = draftKey(order);
+  const [initial] = useState(() => loadDraft(key, () => (order ? fromOrder(order) : newDraft())));
   const [recipient, setRecipient] = useState(initial.recipient);
   const [items, setItems] = useState(initial.items);
   const [error, setError] = useState<string>();
@@ -111,13 +116,12 @@ export function OrderForm({ order }: { order?: Order }) {
   };
 
   useEffect(() => {
-    if (order) return;
     try {
-      sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ recipient, items } satisfies Draft));
+      sessionStorage.setItem(key, JSON.stringify({ recipient, items } satisfies Draft));
     } catch {
       // Storage full or blocked: the form still works, it just will not survive a reload.
     }
-  }, [order, recipient, items]);
+  }, [key, recipient, items]);
 
   const recipientField = (name: keyof typeof emptyRecipient) => ({
     name,
@@ -128,8 +132,9 @@ export function OrderForm({ order }: { order?: Order }) {
   });
 
   function discard() {
-    if (!confirm('Discard this order and start again?')) return;
-    const fresh = newDraft();
+    if (!confirm(order ? 'Discard your unsaved changes?' : 'Discard this order and start again?'))
+      return;
+    const fresh = order ? fromOrder(order) : newDraft();
     setRecipient(fresh.recipient);
     setItems(fresh.items);
     setError(undefined);
@@ -181,14 +186,10 @@ export function OrderForm({ order }: { order?: Order }) {
         },
         items: orderItems,
       };
-      if (order) {
-        await api.updateOrder(order._id, payload);
-        await navigate(`/orders/${order._id}`);
-      } else {
-        await api.createOrder(payload);
-        sessionStorage.removeItem(DRAFT_KEY);
-        await navigate('/');
-      }
+      if (order) await api.updateOrder(order._id, payload);
+      else await api.createOrder(payload);
+      sessionStorage.removeItem(key);
+      await navigate(order ? `/orders/${order._id}` : '/');
     } catch (err) {
       setError(String(err));
       setSaving(false);
@@ -261,6 +262,11 @@ export function OrderForm({ order }: { order?: Order }) {
             />
           ))}
 
+          <p className="tabular-nums">
+            Prints: {vnd(unitPrice(item))} x {Number(item.quantity) || 0} ={' '}
+            <strong>{vnd(unitPrice(item) * (Number(item.quantity) || 0))}</strong>
+          </p>
+
           <button
             type="button"
             className={button}
@@ -282,6 +288,11 @@ export function OrderForm({ order }: { order?: Order }) {
         Add item
       </button>
 
+      <p className="border-t border-zinc-400 pt-2 text-base font-semibold tabular-nums">
+        Order total:{' '}
+        {vnd(orderTotal(items.map((it) => ({ ...it, quantity: Number(it.quantity) || 0 }))))}
+      </p>
+
       {error && <p className="text-red-700">{error}</p>}
       <button
         type="submit"
@@ -290,11 +301,9 @@ export function OrderForm({ order }: { order?: Order }) {
       >
         {saving ? 'Saving...' : order ? 'Save changes' : 'Create order'}
       </button>
-      {!order && (
-        <button type="button" className={button} onClick={discard}>
-          Discard draft
-        </button>
-      )}
+      <button type="button" className={button} onClick={discard}>
+        {order ? 'Discard changes' : 'Discard draft'}
+      </button>
     </form>
   );
 }

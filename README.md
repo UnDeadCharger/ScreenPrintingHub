@@ -6,7 +6,7 @@ reached over Tailscale. There is no login: the tailnet is the access control.
 ```
 apps/api         NestJS + Mongoose API (also serves uploaded images, and the web app in production)
 apps/web         React + Vite + Tailwind web app
-packages/shared  TypeScript types shared by both apps
+packages/shared  TypeScript types shared by both apps, and designs.json (the design list with prices)
 tools            split_designs.py, which generates the design files
 ```
 
@@ -67,7 +67,7 @@ the repo. Each sheet is one flattened scan, so `tools/split_designs.py` finds ea
 image and cuts it out with white turned transparent. It writes:
 
 - `apps/web/public/designs/<id>.png`: the cut-out as an alpha mask for the web app.
-- `apps/web/src/designs.json`: the list the order form shows.
+- `packages/shared/designs.json`: the design list (id, name, size, price), read by the web app and the API.
 
 The generated files are committed, so the script is only needed to regenerate them or add a sheet.
 To run it, put the sheet PDFs at the repo root (they are git-ignored) and follow the script's header. Text that runs down the sheet is rotated upright.
@@ -82,6 +82,7 @@ All routes are under `/api`. Images are served from `/uploads/<filename>`.
 | GET    | `/api/orders`              | List orders, newest first                                                         |
 | GET    | `/api/orders/:id`          | Get one order                                                                     |
 | PATCH  | `/api/orders/:id`          | Update recipient, items, or status (`pending`/`in_progress`/`printed`/`shipping`) |
+| PATCH  | `/api/orders/:id/payment`  | Set `paymentStatus` to `unpaid`, `deposit` or `paid`                              |
 | PATCH  | `/api/orders/:id/complete` | Mark completed and set `completedAt`                                              |
 | PATCH  | `/api/orders/:id/cancel`   | Mark cancelled                                                                    |
 | POST   | `/api/uploads`             | Upload one image (form field `file`), get `{ path }`                              |
@@ -91,12 +92,24 @@ All routes are under `/api`. Images are served from `/uploads/<filename>`.
 - **One `.env` at the repo root** serves the API, Vite and Docker Compose. `.env.example` documents
   every variable.
 - **No Turborepo.** `pnpm -r` is enough for three packages.
-- **`packages/shared` is a single `index.d.ts`** with types only, so it has no build step. Values the
+- **`packages/shared` is an `index.d.ts`** with types only, plus `designs.json` as plain data, so it
+  has no build step. Values the
   API validates against (such as the allowed statuses) are written in the API's DTOs and checked
   against the shared types by the compiler.
 - **An item has a front and a back, each optional.** Each side is one photo with any number of
   prints on it. A print is a design from the library, an ink colour (black, white, red or blue) and
   a tap position `{ x, y }`, stored as 0-1 fractions of the photo.
+- **Each design has a price, in VND** (10,000, 20,000 or 40,000), kept in `designs.json` and in the
+  table in `tools/split_designs.py`. Ink colour does not change it, and the garment itself is not
+  priced. A piece costs the sum of its prints; an item costs that times its quantity; the order
+  total is the sum of its items.
+- **The API stamps each print with its price when an order's items are saved**, and rejects design
+  ids that are not in the library. Totals are computed from those stored prices, so changing a
+  price later does not alter existing orders. Editing an order's items re-prices them at current
+  prices.
+- **Payment status (`unpaid`, `deposit`, `paid`) is separate from the order status.** It has its own
+  endpoint and can change at any time, including on a completed or cancelled order. Only the status
+  is recorded, not the amount of a deposit.
 - **One file per design, any colour.** The design PNGs are alpha masks that the browser tints with
   CSS, so there are no per-colour copies.
 - **Designs keep their relative sizes in the preview.** Each is drawn at its share of the sheet
@@ -110,8 +123,8 @@ All routes are under `/api`. Images are served from `/uploads/<filename>`.
   therefore empty by default and only needed if the web app is ever hosted separately.
 - **The new-order form is phone-first.** Inputs are 16px on phones (so iOS does not zoom on focus)
   and controls are at least 44px tall. Placement is tap-only by design.
-- **An in-progress order is kept in `sessionStorage`** so a reload or an evicted tab does not lose
-  it. It is cleared after a successful create or with "Discard draft".
+- **An in-progress order or edit is kept in `sessionStorage`** so a reload or an evicted tab does
+  not lose it. It is cleared after a successful save, or with "Discard draft" / "Discard changes".
 - **Auth slot.** `apps/api/src/main.ts` has a comment marking where a global guard goes.
 - **Order status is `pending -> in_progress -> printed -> shipping -> completed`**, with
   `cancelled` reachable from any step before `completed`. `PATCH /api/orders/:id` moves through the
@@ -130,13 +143,13 @@ All routes are under `/api`. Images are served from `/uploads/<filename>`.
 ## What is stubbed
 
 - **`PATCH` replaces `recipient` or `items` wholesale**; there are no partial item edits.
-- **Editing an order** keeps no saved draft; only a new order survives a reload.
-- **The order list** filters by status in the browser; there is no sorting, search or paging.
-- **Design ids are not checked against the library** by the API, only their shape.
+- **The order list** searches and filters in the browser; there is no sorting or paging.
 - **Uploads** are not linked to orders: nothing checks that a filename in an order exists, and
   files are never deleted.
 
 ## Next steps
 
-1. Clean up orphaned upload files (abandoned drafts and replaced photos), if disk use ever matters.
-2. Search, sorting and paging for the order list, once there are enough orders to need them.
+1. Sorting and paging for the order list, in the API, once there are enough orders to need them.
+2. Clean up orphaned upload files (abandoned drafts and replaced photos), if disk use ever matters.
+   Left out so far because deleting photos cannot be undone.
+3. Record deposit amounts, if the paid/unpaid split alone stops being enough.
