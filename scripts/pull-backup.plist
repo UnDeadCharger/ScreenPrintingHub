@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- macOS LaunchAgent: runs the backup pull every day at 09:30, or on the next wake if the Mac
+     was asleep then (cron would just skip it). Install steps are in the README, under Backups.
+     It runs a copy of pull-backup.sh kept in ~/Backups, because background jobs are not allowed
+     to read ~/Desktop or ~/Documents, where the repo may live. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.sph.pull-backup</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>-c</string>
+    <string>echo "== $(date)"; exec "$HOME/Backups/sph-pull-backup.sh"</string>
+  </array>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>9</integer>
+    <key>Minute</key>
+    <integer>30</integer>
+  </dict>
+  <key>StandardOutPath</key>
+  <string>/tmp/sph-pull-backup.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/sph-pull-backup.log</string>
+</dict>
+</plist>

@@ -75,12 +75,17 @@ There are three layers. The first two are automatic once set up.
 2. **On the Mac: `scripts/pull-backup.sh`.** Copies the server's backup folder to
    `~/Backups/screen-printing-hub/` over SSH, so a copy survives the server's disk. It fetches only
    what the Mac lacks and needs just `ssh` and `tar`. The server is `argama` by default: an alias in
-   `~/.ssh/config`, or pass `user@host` as the first argument. To run it every
-   morning, add this with `crontab -e` on the Mac:
+   `~/.ssh/config`, or pass `user@host` as the first argument. To run it every day at 09:30 (or on
+   the next wake, if the Mac was asleep), install the LaunchAgent:
 
+   ```sh
+   cp scripts/pull-backup.sh ~/Backups/sph-pull-backup.sh
+   cp scripts/pull-backup.plist ~/Library/LaunchAgents/com.sph.pull-backup.plist
+   launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.sph.pull-backup.plist
    ```
-   30 9 * * * $HOME/Desktop/VisualCode/ScreenPrintingHub/scripts/pull-backup.sh >> $HOME/Backups/sph-pull.log 2>&1
-   ```
+
+   It runs the copy in `~/Backups`, because macOS does not let background jobs read `~/Desktop` or
+   `~/Documents`. Copy the script again if it changes. Its output goes to `/tmp/sph-pull-backup.log`.
 
 3. **By hand: the Backup page in the app.** "Export everything" downloads one `.tar` file holding
    `orders.json` and every photo. Importing that file adds the orders and photos that are missing
